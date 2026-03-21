@@ -1,127 +1,111 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabaseClient'
 import { useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabaseClient'
 
 export default function Dashboard() {
-  const [user, setUser] = useState(null)
-  const [darkMode, setDarkMode] = useState(true)
-  const [activePage, setActivePage] = useState('home')
+  const [resumes, setResumes] = useState([])
+  const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
   useEffect(() => {
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    setUser(session?.user)
-  })
-}, [])
+    fetchResumes()
+  }, [])
 
-useEffect(() => {
-  if (darkMode) {
-    document.documentElement.classList.add('dark')
-  } else {
-    document.documentElement.classList.remove('dark')
+  async function fetchResumes() {
+    const { data, error } = await supabase
+      .from('resumes')
+      .select('*')
+      .order('updated_at', { ascending: false })
+    if (!error) setResumes(data)
+    setLoading(false)
   }
-}, [darkMode])
 
-  const handleLogout = async () => {
+  async function createNew() {
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data, error } = await supabase
+      .from('resumes')
+      .insert({ user_id: user.id, title: 'Untitled Resume', data: {} })
+      .select()
+      .single()
+    if (!error) navigate(`/builder/${data.id}`)
+  }
+
+  async function deleteResume(id) {
+    await supabase.from('resumes').delete().eq('id', id)
+    setResumes(resumes.filter(r => r.id !== id))
+  }
+
+  async function handleLogout() {
     await supabase.auth.signOut()
-    navigate('/login')
+    navigate('/')
   }
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-gray-500">Loading...</p>
+    </div>
+  )
 
   return (
-  <div className="flex h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white">
-
-    {/* Sidebar */}
-    <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">
-      <div className="p-6 text-xl font-bold tracking-tight">⚡ SaaS Starter</div>
-      <nav className="flex-1 px-4 space-y-1">
-        {['home', 'profile', 'settings'].map((page) => (
-          <button
-            key={page}
-            onClick={() => setActivePage(page)}
-            className={`w-full text-left px-4 py-2.5 rounded-lg capitalize text-sm font-medium transition ${
-              activePage === page
-                ? 'bg-indigo-600 text-white'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-            }`}
-          >
-            {page}
-          </button>
-        ))}
-      </nav>
-      <div className="p-4">
-        <button
-          onClick={handleLogout}
-          className="w-full text-left px-4 py-2.5 rounded-lg text-sm text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-        >
+    <div className="min-h-screen bg-gray-50">
+      <nav className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+        <h1 className="text-lg font-semibold">Resume Builder</h1>
+        <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-gray-800">
           Logout
         </button>
-      </div>
-    </aside>
+      </nav>
 
-    {/* Main content */}
-    <div className="flex-1 flex flex-col overflow-hidden">
-
-      {/* Topbar */}
-      <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6">
-        <h1 className="text-lg font-semibold capitalize">{activePage}</h1>
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 transition"
-          >
-            {darkMode ? '☀️ Light' : '🌙 Dark'}
-          </button>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            {user?.email}
-          </span>
-        </div>
-      </header>
-
-      {/* Page content */}
-      <main className="flex-1 overflow-y-auto p-6">
-        {activePage === 'home' && (
+      <div className="max-w-4xl mx-auto px-6 py-10">
+        <div className="flex justify-between items-center mb-8">
           <div>
-            <h2 className="text-2xl font-bold mb-2">Welcome back 👋</h2>
-            <p className="text-gray-500 dark:text-gray-400">You're logged in as {user?.email}</p>
+            <h2 className="text-2xl font-semibold">My Resumes</h2>
+            <p className="text-gray-500 text-sm mt-1">Create and manage your resumes</p>
+          </div>
+          <button
+            onClick={createNew}
+            className="bg-black text-white px-5 py-2.5 rounded-lg text-sm hover:bg-gray-800 transition"
+          >
+            + New Resume
+          </button>
+        </div>
+
+        {resumes.length === 0 ? (
+          <div className="text-center py-20 border border-dashed border-gray-300 rounded-xl">
+            <p className="text-gray-400 mb-4">No resumes yet</p>
+            <button
+              onClick={createNew}
+              className="bg-black text-white px-5 py-2.5 rounded-lg text-sm hover:bg-gray-800 transition"
+            >
+              Create your first resume
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {resumes.map(r => (
+              <div key={r.id} className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-sm transition">
+                <h3 className="font-medium text-gray-900 mb-1">{r.title}</h3>
+                <p className="text-xs text-gray-400 mb-4">
+                  Updated {new Date(r.updated_at).toLocaleDateString()}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => navigate(`/builder/${r.id}`)}
+                    className="flex-1 text-sm border border-gray-200 rounded-lg py-1.5 hover:bg-gray-50 transition"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => deleteResume(r.id)}
+                    className="text-sm text-red-400 border border-red-100 rounded-lg px-3 py-1.5 hover:bg-red-50 transition"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
-        {activePage === 'profile' && (
-          <div className="max-w-md">
-            <h2 className="text-2xl font-bold mb-6">Profile</h2>
-            <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 space-y-4 border border-gray-200 dark:border-gray-800">
-              <div>
-                <label className="text-sm text-gray-400 block mb-1">Email</label>
-                <p className="text-sm font-medium">{user?.email}</p>
-              </div>
-              <div>
-                <label className="text-sm text-gray-400 block mb-1">User ID</label>
-                <p className="text-sm font-mono text-gray-500">{user?.id}</p>
-              </div>
-              <div>
-                <label className="text-sm text-gray-400 block mb-1">Last Sign In</label>
-                <p className="text-sm">{new Date(user?.last_sign_in_at).toLocaleString()}</p>
-              </div>
-            </div>
-          </div>
-        )}
-        {activePage === 'settings' && (
-          <div className="max-w-md">
-            <h2 className="text-2xl font-bold mb-6">Settings</h2>
-            <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Dark Mode</span>
-                <button
-                  onClick={() => setDarkMode(!darkMode)}
-                  className={`w-12 h-6 rounded-full transition ${darkMode ? 'bg-indigo-600' : 'bg-gray-300'}`}
-                >
-                  <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${darkMode ? 'translate-x-6' : 'translate-x-0'}`} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
+      </div>
     </div>
-  </div>
-)
+  )
 }
