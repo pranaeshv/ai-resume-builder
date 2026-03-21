@@ -11,7 +11,7 @@ export default function ProtectedRoute({ children }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setLoading(false)
-      if (!session) navigate('/login')
+      if (!session) navigate('/')
     })
   }, [])
 
