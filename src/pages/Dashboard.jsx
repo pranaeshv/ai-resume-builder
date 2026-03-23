@@ -106,6 +106,13 @@ export default function Dashboard() {
                   >
                     Delete
                   </button>
+
+                  <button
+                    onClick={() => navigate(`/preview/${r.id}`)}
+                     className="flex-1 text-sm border border-gray-200 rounded-lg py-1.5 hover:bg-gray-50 transition"
+                  >
+                    Preview
+                  </button>
                 </div>
               </div>
             ))}

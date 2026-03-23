@@ -5,6 +5,11 @@ import Dashboard from './pages/Dashboard'
 import Builder from './pages/Builder'
 import ProtectedRoute from './components/ProtectedRoute'
 import Tailor from './pages/Tailor'
+import Preview from './pages/Preview'
+
+
+
+
 
 export default function App() {
   return (
@@ -24,6 +29,11 @@ export default function App() {
 
         <Route path="/tailor/:id" element={
           <ProtectedRoute><Tailor /></ProtectedRoute>
+        } />
+
+
+        <Route path="/preview/:id" element={
+          <ProtectedRoute><Preview /></ProtectedRoute>
         } />
       </Routes>
     </BrowserRouter>
