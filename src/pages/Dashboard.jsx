@@ -95,6 +95,12 @@ export default function Dashboard() {
                     Edit
                   </button>
                   <button
+                    onClick={() => navigate(`/tailor/${r.id}`)}
+                    className="flex-1 text-sm border border-indigo-100 text-indigo-500 rounded-lg py-1.5 hover:bg-indigo-50 transition"
+                  >
+                    AI Tailor
+                  </button>
+                  <button
                     onClick={() => deleteResume(r.id)}
                     className="text-sm text-red-400 border border-red-100 rounded-lg px-3 py-1.5 hover:bg-red-50 transition"
                   >
